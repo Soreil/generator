@@ -6,31 +6,48 @@ const unsigned long syncTime = 15; //ms, ulong is same as Arduino libraries use 
 const unsigned long bitTime = 9; //ms
 const int trainLength = 4; //Amount of bits in the train
 
-void setup()
-{
+void setup() {
+	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(in, INPUT);
 	pinMode(out, OUTPUT);
+
+	noInterrupts();
+	TCCR1A = 0;
+	TCCR1B = 0;
+	TCNT1 = 0;
+
+	OCR1A = (16000000/1024)*15;
+	TCCR1B |= (1 << WGM12);
+	TCCR1B |= (1 << CS12);
+	TCCR1B |= (1 << CS10);
+	TIMSK1 |= (1 << OCIE1A);
+	interrupts();
+
 	Serial.begin(2000000); //Baud rate of 2Mbps
 	Serial.println("Program initialized");
 }
 
+//Timer compare routine for the 1ms timer
+ISR(TIMER1_COMPA_vect) {
+	digitalWrite(LED_BUILTIN, digitalRead(LED_BUILTIN) ^ 1);
+}
+
 //Basic pulse train
-void loop()
-{
+void loop() {
 	Serial.print("Start time:");
-	Serial.println(millis());
+	Serial.println(micros());
 	writeSync(out);
-	Serial.print("Finished writing the sync pulse, current time:");
-	Serial.println(millis());
+	//Serial.print("Finished writing the sync pulse, current time:");
+	//Serial.println(micros());
 	for (int i = 0; i < trainLength; i++) {
 		write0(out);
-		Serial.print("Finished writing the ");
-		Serial.print(i);
-		Serial.print("th pulse, current time:");
-		Serial.println(millis());
+		//Serial.print("Finished writing the ");
+		//Serial.print(i);
+		//Serial.print("th pulse, current time:");
+		//Serial.println(micros());
 	}
 	Serial.print("Finished writing the starting train, end time:");
-	Serial.println(millis());
+	Serial.println(micros());
 }
 
 //Writes a sync signal, does not handle entry of pins not defined as output.
